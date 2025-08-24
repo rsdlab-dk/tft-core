@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	puuidRegex = regexp.MustCompile(`^[A-Za-z0-9_-]{78}$`)
-	nameRegex  = regexp.MustCompile(`^[0-9A-Za-z ._]{3,16}$`)
+	puuidRegex    = regexp.MustCompile(`^[A-Za-z0-9_-]{78}$`)
+	gameNameRegex = regexp.MustCompile(`^[\p{L}\p{N}._\- ]{3,16}$`)
+	tagLineRegex  = regexp.MustCompile(`^[A-Za-z0-9]{3,5}$`)
 )
 
 func ValidatePUUID(puuid, requestID string, log *logger.Logger, w http.ResponseWriter, r *http.Request) bool {
@@ -33,20 +34,36 @@ func ValidatePUUID(puuid, requestID string, log *logger.Logger, w http.ResponseW
 	return true
 }
 
-func ValidateSummonerName(name, requestID string, log *logger.Logger, w http.ResponseWriter, r *http.Request) bool {
-	if name == "" {
-		log.WithContext(r.Context()).Warn("missing summoner name parameter",
+func ValidateRiotID(gameName, tagLine, requestID string, log *logger.Logger, w http.ResponseWriter, r *http.Request) bool {
+	if gameName == "" {
+		log.WithContext(r.Context()).Warn("missing gameName parameter",
 			zap.String("request_id", requestID))
-		WriteBadRequest(w, "Summoner name parameter is required", log, r)
+		WriteBadRequest(w, "GameName parameter is required", log, r)
 		return false
 	}
 
-	trimmedName := strings.TrimSpace(name)
-	if !nameRegex.MatchString(trimmedName) {
-		log.WithContext(r.Context()).Warn("invalid summoner name format",
+	if tagLine == "" {
+		log.WithContext(r.Context()).Warn("missing tagLine parameter",
+			zap.String("request_id", requestID))
+		WriteBadRequest(w, "TagLine parameter is required", log, r)
+		return false
+	}
+
+	trimmedGameName := strings.TrimSpace(gameName)
+	if !gameNameRegex.MatchString(trimmedGameName) {
+		log.WithContext(r.Context()).Warn("invalid gameName format",
 			zap.String("request_id", requestID),
-			zap.String("name", name))
-		WriteBadRequest(w, "Invalid summoner name format", log, r)
+			zap.String("gameName", gameName))
+		WriteBadRequest(w, "Invalid GameName format (3-16 characters)", log, r)
+		return false
+	}
+
+	trimmedTagLine := strings.TrimSpace(tagLine)
+	if !tagLineRegex.MatchString(trimmedTagLine) {
+		log.WithContext(r.Context()).Warn("invalid tagLine format",
+			zap.String("request_id", requestID),
+			zap.String("tagLine", tagLine))
+		WriteBadRequest(w, "Invalid TagLine format (3-5 alphanumeric characters)", log, r)
 		return false
 	}
 
@@ -64,10 +81,8 @@ func ValidateRegion(region, requestID string, log *logger.Logger, w http.Respons
 		"la2":  true,
 		"na1":  true,
 		"oc1":  true,
-		"ph2":  true,
 		"ru":   true,
 		"sg2":  true,
-		"th2":  true,
 		"tr1":  true,
 		"tw2":  true,
 		"vn2":  true,

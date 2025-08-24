@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/rsdlab-dk/tft-core/logger"
 	"github.com/rsdlab-dk/tft-core/ratelimit"
@@ -10,37 +11,39 @@ import (
 	"go.uber.org/zap"
 )
 
-func SummonerByNameHandler(riotClient *riot.Client, rateLimiter ratelimit.Limiter, log *logger.Logger) http.HandlerFunc {
+func SummonerByRiotIDHandler(riotClient *riot.Client, rateLimiter ratelimit.Limiter, log *logger.Logger) http.HandlerFunc {
 	return WithCORS(WithRateLimit(rateLimiter, "summoner", log)(func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		gameName := r.URL.Query().Get("gameName")
+		tagLine := r.URL.Query().Get("tagLine")
 		region := r.URL.Query().Get("region")
 		if region == "" {
 			region = "br1"
 		}
-		
+
 		requestID := logger.GetRequestID(r.Context())
-		
-		if !ValidateSummonerName(name, requestID, log, w, r) {
+
+		if !ValidateRiotID(gameName, tagLine, requestID, log, w, r) {
 			return
 		}
-		
+
 		if !ValidateRegion(region, requestID, log, w, r) {
 			return
 		}
 
-		log.WithContext(r.Context()).Info("summoner request by name",
-			zap.String("name", name),
+		log.WithContext(r.Context()).Info("summoner request by riot id",
+			zap.String("gameName", gameName),
+			zap.String("tagLine", tagLine),
 			zap.String("region", region))
 
 		ctx := context.WithValue(r.Context(), "timeout", "10s")
-		result, err := riotClient.GetSummonerByName(ctx, region, name)
+		result, err := riotClient.GetSummonerByRiotID(ctx, region, gameName, tagLine)
 		if err != nil {
 			handleRiotError(err, log, w, r, requestID)
 			return
 		}
 
 		log.WithContext(r.Context()).Info("summoner request successful",
-			zap.String("name", name),
+			zap.String("gameName", gameName),
 			zap.String("puuid", result.PUUID))
 
 		WriteJSON(w, result, log, r)
@@ -54,13 +57,13 @@ func SummonerByPUUIDHandler(riotClient *riot.Client, rateLimiter ratelimit.Limit
 		if region == "" {
 			region = "br1"
 		}
-		
+
 		requestID := logger.GetRequestID(r.Context())
-		
+
 		if !ValidatePUUID(puuid, requestID, log, w, r) {
 			return
 		}
-		
+
 		if !ValidateRegion(region, requestID, log, w, r) {
 			return
 		}
@@ -84,14 +87,45 @@ func SummonerByPUUIDHandler(riotClient *riot.Client, rateLimiter ratelimit.Limit
 	}))
 }
 
+func ChallengerLeagueHandler(riotClient *riot.Client, rateLimiter ratelimit.Limiter, log *logger.Logger) http.HandlerFunc {
+	return WithCORS(WithRateLimit(rateLimiter, "league", log)(func(w http.ResponseWriter, r *http.Request) {
+		region := r.URL.Query().Get("region")
+		if region == "" {
+			region = "br1"
+		}
+
+		requestID := logger.GetRequestID(r.Context())
+
+		if !ValidateRegion(region, requestID, log, w, r) {
+			return
+		}
+
+		log.WithContext(r.Context()).Info("challenger league request",
+			zap.String("region", region))
+
+		ctx := context.WithValue(r.Context(), "timeout", "10s")
+		result, err := riotClient.GetChallengerLeague(ctx, region)
+		if err != nil {
+			handleRiotError(err, log, w, r, requestID)
+			return
+		}
+
+		log.WithContext(r.Context()).Info("challenger league request successful",
+			zap.String("region", region),
+			zap.Int("players", len(result.Entries)))
+
+		WriteJSON(w, result, log, r)
+	}))
+}
+
 func handleRiotError(err error, log *logger.Logger, w http.ResponseWriter, r *http.Request, requestID string) {
 	if riotErr, ok := err.(*riot.RiotError); ok {
 		switch {
 		case riotErr.IsNotFound():
-			log.WithContext(r.Context()).Warn("summoner not found",
+			log.WithContext(r.Context()).Warn("resource not found",
 				zap.String("request_id", requestID),
 				zap.Error(err))
-			WriteNotFound(w, "Summoner not found", log, r)
+			WriteNotFound(w, "Resource not found", log, r)
 		case riotErr.IsRateLimited():
 			log.WithContext(r.Context()).Warn("rate limited by riot api",
 				zap.String("request_id", requestID),

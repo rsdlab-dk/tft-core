@@ -18,12 +18,12 @@ func GetRequestID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	
+
 	requestID, ok := ctx.Value(requestIDKey).(string)
 	if !ok {
 		return ""
 	}
-	
+
 	return requestID
 }
 

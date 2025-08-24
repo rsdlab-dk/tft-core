@@ -27,10 +27,10 @@ func NewConfig() *Config {
 		DefaultRate:   100,
 		DefaultWindow: 2 * time.Minute,
 		Rules: map[string]Rule{
-			"summoner":    {Rate: 100, Window: 2 * time.Minute},
-			"match":       {Rate: 100, Window: 2 * time.Minute},
-			"league":      {Rate: 100, Window: 2 * time.Minute},
-			"match-list":  {Rate: 1000, Window: 10 * time.Second},
+			"summoner":   {Rate: 100, Window: 2 * time.Minute},
+			"match":      {Rate: 100, Window: 2 * time.Minute},
+			"league":     {Rate: 100, Window: 2 * time.Minute},
+			"match-list": {Rate: 1000, Window: 10 * time.Second},
 		},
 	}
 }

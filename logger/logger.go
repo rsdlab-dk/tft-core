@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap"
 )
 
 type Logger struct {
@@ -13,7 +12,7 @@ type Logger struct {
 
 func New(level string) (*Logger, error) {
 	var config zap.Config
-	
+
 	if level == "production" {
 		config = zap.NewProductionConfig()
 	} else {

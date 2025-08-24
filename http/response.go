@@ -21,12 +21,12 @@ type ErrorInfo struct {
 
 func WriteJSON(w http.ResponseWriter, data interface{}, log *logger.Logger, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	response := Response{
 		Success: true,
 		Data:    data,
 	}
-	
+
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.WithContext(r.Context()).Error("failed to encode json response",
 			zap.Error(err))
@@ -38,7 +38,7 @@ func WriteJSON(w http.ResponseWriter, data interface{}, log *logger.Logger, r *h
 func WriteError(w http.ResponseWriter, code, message string, statusCode int, log *logger.Logger, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	response := Response{
 		Success: false,
 		Error: &ErrorInfo{
@@ -46,7 +46,7 @@ func WriteError(w http.ResponseWriter, code, message string, statusCode int, log
 			Message: message,
 		},
 	}
-	
+
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.WithContext(r.Context()).Error("failed to encode error response",
 			zap.Error(err))

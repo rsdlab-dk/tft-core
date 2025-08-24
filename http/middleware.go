@@ -15,9 +15,9 @@ func WithRequestID(log *logger.Logger) func(http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			requestID := logger.GenerateRequestID()
 			ctx := logger.WithRequestID(r.Context(), requestID)
-			
+
 			w.Header().Set("X-Request-ID", requestID)
-			
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 	}
@@ -28,7 +28,7 @@ func WithRateLimit(limiter ratelimit.Limiter, endpoint string, log *logger.Logge
 		return func(w http.ResponseWriter, r *http.Request) {
 			config := ratelimit.NewConfig()
 			rule := config.GetRule(endpoint)
-			
+
 			key := endpoint + ":" + r.RemoteAddr
 			allowed, err := limiter.Allow(r.Context(), key, rule.Rate, rule.Window)
 			if err != nil {
@@ -38,7 +38,7 @@ func WithRateLimit(limiter ratelimit.Limiter, endpoint string, log *logger.Logge
 				WriteInternalError(w, log, r)
 				return
 			}
-			
+
 			if !allowed {
 				log.WithContext(r.Context()).Warn("rate limit exceeded",
 					zap.String("endpoint", endpoint),
@@ -46,7 +46,7 @@ func WithRateLimit(limiter ratelimit.Limiter, endpoint string, log *logger.Logge
 				WriteError(w, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", http.StatusTooManyRequests, log, r)
 				return
 			}
-			
+
 			next.ServeHTTP(w, r)
 		}
 	}
@@ -56,13 +56,13 @@ func WithLogging(log *logger.Logger) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			
+
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-			
+
 			next.ServeHTTP(wrapped, r)
-			
+
 			duration := time.Since(start)
-			
+
 			log.WithContext(r.Context()).Info("request completed",
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
@@ -79,12 +79,12 @@ func WithCORS(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Request-ID")
-		
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	}
 }

@@ -22,9 +22,10 @@ func NewClient(apiKey string) *Client {
 			Timeout: 10 * time.Second,
 		},
 		baseURL: map[string]string{
+			"account":  "https://%s.api.riotgames.com",
 			"summoner": "https://%s.api.riotgames.com",
-			"match":    "https://%s.api.riotgames.com",
 			"league":   "https://%s.api.riotgames.com",
+			"match":    "https://%s.api.riotgames.com",
 		},
 	}
 }
@@ -67,4 +68,8 @@ func (c *Client) handleErrorResponse(statusCode int, body []byte) error {
 
 func (c *Client) getRegionURL(service, region string) string {
 	return fmt.Sprintf(c.baseURL[service], region)
+}
+
+func (c *Client) getClusterURL(service, cluster string) string {
+	return fmt.Sprintf(c.baseURL[service], cluster)
 }

@@ -31,7 +31,7 @@ mod-verify:
 
 examples:
 	cd examples/basic && go run main.go
-	cd examples/advanced && go run main.go
+	cd examples/server && go run main.go
 
 install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
